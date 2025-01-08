@@ -16,6 +16,7 @@ def fetch_weapon(url):
         name = ''
         count = 0
         dps = []
+        sr = ''
 
         h1_element = soup.find('h1', class_='title')
         if h1_element:
@@ -38,9 +39,22 @@ def fetch_weapon(url):
                         if dps_index < len(tds):  # 确保列索引有效
                             dps.append(tds[dps_index].text.strip())
                             count+=1
+
+                if sr!='':
+                    continue
+                # 找到 "SR補正" 所在的列索引
+                sr_index = None
+                for i, th in enumerate(ths):
+                    if "SR補正" in th.text:
+                        sr_index = i
+                        break
+                # 提取 "DPS" 列的数据
+                if sr_index is not None:
+                        if sr_index < len(tds):  # 确保列索引有效
+                            sr = tds[sr_index].text.strip()
         dps0 = dps[0] if count>0 else ''
         dps1 = dps[1] if count>1 else ''
-        return Weapon(name,dps0,dps1)
+        return Weapon(name,dps0,dps1,sr)
     except requests.RequestException as e:
         print(f"Error fetching data: {e}")
         return None
@@ -54,7 +68,7 @@ def write_weapon_to_csv(weapon, filename="weapons.csv"):
         writer = csv.writer(file)
         # 写入表头（如果文件是新创建的）
         if file.tell() == 0:  # 检查文件是否为空
-            writer.writerow(["Name", "DPS", "DPS(Other)"])
+            writer.writerow(["Name", "DPS", "DPS(Other)", "DPS(SR)"])
         
         # 写入武器数据
         writer.writerow([weapon.name, weapon.dps,weapon.dpsOther])
@@ -81,8 +95,9 @@ def get_hrefs_from_table():
 
 if __name__ == "__main__":
     dns = "https://wikiwiki.jp"
-    url = "https://wikiwiki.jp/splatoon3mix/%E3%83%96%E3%82%AD/%E3%83%8E%E3%83%BC%E3%83%81%E3%83%A9%E3%82%B979"  # 替换为实际的武器网页 URL
     hrefs = get_hrefs_from_table()
     for href in hrefs:
-        weapon = fetch_weapon(dns+href)
-        write_weapon_to_csv(weapon)
+        url = dns+href
+        weapon = fetch_weapon(url)
+        if weapon:
+            write_weapon_to_csv(weapon)
