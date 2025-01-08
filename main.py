@@ -7,6 +7,24 @@ headers = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
 }
 
+def getElement(ele,tables):
+    for table in tables:
+        rows = table.find_all("tr")
+        for row in rows:
+            ths = row.find_all("th")  # 找到所有单元格
+            tds = row.find_all("td")
+            index = None
+            for i, th in enumerate(ths):
+                if '射程' in th.text:
+                    continue
+                if ele in th.text:
+                    index = i
+                    break
+            if index is not None:
+                if index < len(tds):  # 确保列索引有效
+                    return tds[index].text.strip()
+    return ''
+
 def fetch_weapon(url):
     try:
         response = requests.get(url,headers=headers)
@@ -16,15 +34,18 @@ def fetch_weapon(url):
         name = ''
         count = 0
         dps = []
-        sr = ''
+        
 
         h1_element = soup.find('h1', class_='title')
         if h1_element:
             name = h1_element.text
 
         tables = soup.find_all("table")  # 找到所有表格
+        damage = getElement("ダメージ",tables)
+        sr = getElement("SR補正",tables)
         for table in tables:
             rows = table.find_all("tr")  # 找到所有行
+            
             for row in rows:
                 ths = row.find_all("th")  # 找到所有单元格
                 tds = row.find_all("td")
@@ -39,22 +60,9 @@ def fetch_weapon(url):
                         if dps_index < len(tds):  # 确保列索引有效
                             dps.append(tds[dps_index].text.strip())
                             count+=1
-
-                if sr!='':
-                    continue
-                # 找到 "SR補正" 所在的列索引
-                sr_index = None
-                for i, th in enumerate(ths):
-                    if "SR補正" in th.text:
-                        sr_index = i
-                        break
-                # 提取 "DPS" 列的数据
-                if sr_index is not None:
-                        if sr_index < len(tds):  # 确保列索引有效
-                            sr = tds[sr_index].text.strip()
         dps0 = dps[0] if count>0 else ''
         dps1 = dps[1] if count>1 else ''
-        return Weapon(name,dps0,dps1,sr)
+        return Weapon(name,damage,dps0,dps1,sr)
     except requests.RequestException as e:
         print(f"Error fetching data: {e}")
         return None
@@ -68,10 +76,9 @@ def write_weapon_to_csv(weapon, filename="weapons.csv"):
         writer = csv.writer(file)
         # 写入表头（如果文件是新创建的）
         if file.tell() == 0:  # 检查文件是否为空
-            writer.writerow(["Name", "DPS", "DPS(Other)"])
-        
+            writer.writerow(["Name", "DPS", "DPS(Other)", "SR"])
         # 写入武器数据
-        writer.writerow([weapon.name, weapon.dps,weapon.dpsOther])
+        writer.writerow([weapon.name, weapon.dps,weapon.dpsOther,weapon.getSRRatio()])
 
 def get_hrefs_from_table():
     url = "https://wikiwiki.jp/splatoon3mix/%E3%83%96%E3%82%AD"
