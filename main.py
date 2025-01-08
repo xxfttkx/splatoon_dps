@@ -15,7 +15,7 @@ def getElement(ele,tables):
             tds = row.find_all("td")
             index = None
             for i, th in enumerate(ths):
-                if '射程' in th.text:
+                if '射程' in th.text or '範囲' in th.text:
                     continue
                 if ele in th.text:
                     index = i
