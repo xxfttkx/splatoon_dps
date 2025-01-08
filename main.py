@@ -68,7 +68,7 @@ def write_weapon_to_csv(weapon, filename="weapons.csv"):
         writer = csv.writer(file)
         # 写入表头（如果文件是新创建的）
         if file.tell() == 0:  # 检查文件是否为空
-            writer.writerow(["Name", "DPS", "DPS(Other)", "DPS(SR)"])
+            writer.writerow(["Name", "DPS", "DPS(Other)"])
         
         # 写入武器数据
         writer.writerow([weapon.name, weapon.dps,weapon.dpsOther])
